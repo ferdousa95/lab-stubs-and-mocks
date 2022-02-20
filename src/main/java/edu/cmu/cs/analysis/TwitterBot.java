@@ -2,6 +2,7 @@ package edu.cmu.cs.analysis;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import twitter4j.Query;
 import twitter4j.QueryResult;
 import twitter4j.Status;
@@ -9,6 +10,9 @@ import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TwitterBot {
 
@@ -20,7 +24,10 @@ public class TwitterBot {
     if (!debug) {
       try {
         // Send Tweet
-        // sendTweet("Hello World!");
+        Twitter twitter;
+        twitter = TwitterFactory.getSingleton();
+        // postTweet(twitter, "Hello World!");
+        // sendTweet(twitter, "Hello World!");
 
         // Get tweets from Home Timeline
         // getHomeTimeLine();
@@ -55,18 +62,41 @@ public class TwitterBot {
     }
   }
 
-  private static Status sendTweet(String text) throws TwitterException {
+  public static Status postTweet(Twitter twitter, String text) throws TwitterException {
+    return sendTweet(twitter, text);
+  }
+
+  private static Status sendTweet(Twitter twitter, String text) throws TwitterException {
     // access the twitter API using your twitter4j.properties file
     // The factory instance is re-useable and thread safe.
-    Twitter twitter = TwitterFactory.getSingleton();
 
+    Logger logger = Logger.getLogger(TwitterBot.class.getName());
+
+    int count = 0;
+    int maxtries = 3;
     Status status = null;
 
-    status = twitter.updateStatus(text);
-    System.out.println("Successfully updated the status to [" + status.getText() + "].");
+    while(count < maxtries) {
+      try {
+        status = twitter.updateStatus(text);
+        System.out.println("Successfully updated the status to [" + status.getText() + "].");
+        return status;
+      }
+      catch (TwitterException e) {
+        logger.log(Level.WARNING, "Failed in posting a Tweet, TwitterRelated issue");
+        count++;
+      }
+      catch(Exception e) {
+        logger.log(Level.WARNING, "Failed in posting a Tweet");
+        count++;
+      }
+    }
 
-    return status;
+    logger.log(Level.SEVERE, "Error in posting a new Tweet");
+    return null;
   }
+
+
 
   private static void getHomeTimeLine() throws TwitterException {
     Twitter twitter = TwitterFactory.getSingleton();
@@ -81,8 +111,10 @@ public class TwitterBot {
     }
   }
 
-  private static void searchForTweets(String query_text) throws TwitterException {
-    Twitter twitter = TwitterFactory.getSingleton();
+  public static void searchForTweetsWrapper(Twitter twitter, String query_text) throws TwitterException {
+    searchForTweets(twitter, query_text);
+  }
+  private static void searchForTweets(Twitter twitter, String query_text) throws TwitterException {
     Query query = new Query(query_text);
     QueryResult result;
     result = twitter.search(query);
